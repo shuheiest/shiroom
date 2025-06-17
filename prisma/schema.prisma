@@ -1,0 +1,133 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model File {
+  id                String            @id @default(cuid())
+  originalName      String
+  originalSize      Int
+  mimeType          String
+  uploadPath        String
+  sanitizedPath     String?
+  checksum          String
+  status            FileStatus        @default(PENDING)
+  uploadedAt        DateTime          @default(now())
+  processedAt       DateTime?
+  userId            String?
+  userAgent         String?
+  ipAddress         String?
+  processingLogs    ProcessingLog[]
+  threats           ThreatDetection[]
+  auditTrail        AuditTrail[]
+
+  @@map("files")
+}
+
+model ProcessingLog {
+  id        String           @id @default(cuid())
+  fileId    String
+  level     LogLevel
+  message   String
+  details   Json?
+  timestamp DateTime         @default(now())
+  file      File             @relation(fields: [fileId], references: [id], onDelete: Cascade)
+
+  @@map("processing_logs")
+}
+
+model ThreatDetection {
+  id          String       @id @default(cuid())
+  fileId      String
+  threatType  ThreatType
+  severity    ThreatLevel
+  description String
+  location    String?
+  remediated  Boolean      @default(false)
+  detectedAt  DateTime     @default(now())
+  file        File         @relation(fields: [fileId], references: [id], onDelete: Cascade)
+
+  @@map("threat_detections")
+}
+
+model AuditTrail {
+  id          String     @id @default(cuid())
+  fileId      String
+  action      AuditAction
+  userId      String?
+  ipAddress   String?
+  userAgent   String?
+  details     Json?
+  timestamp   DateTime   @default(now())
+  file        File       @relation(fields: [fileId], references: [id], onDelete: Cascade)
+
+  @@map("audit_trails")
+}
+
+model SystemConfig {
+  id    String @id @default(cuid())
+  key   String @unique
+  value String
+  type  ConfigType
+  updatedAt DateTime @updatedAt
+  updatedBy String?
+
+  @@map("system_config")
+}
+
+enum FileStatus {
+  PENDING
+  PROCESSING
+  SANITIZED
+  FAILED
+  QUARANTINED
+}
+
+enum LogLevel {
+  DEBUG
+  INFO
+  WARN
+  ERROR
+  FATAL
+}
+
+enum ThreatType {
+  MALICIOUS_SCRIPT
+  EMBEDDED_FILE
+  SUSPICIOUS_FORM
+  EXTERNAL_LINK
+  METADATA_THREAT
+  STRUCTURAL_ANOMALY
+  UNKNOWN
+}
+
+enum ThreatLevel {
+  LOW
+  MEDIUM
+  HIGH
+  CRITICAL
+}
+
+enum AuditAction {
+  UPLOAD
+  DOWNLOAD
+  SANITIZE
+  DELETE
+  VIEW
+  QUARANTINE
+  RESTORE
+}
+
+enum ConfigType {
+  STRING
+  NUMBER
+  BOOLEAN
+  JSON
+}

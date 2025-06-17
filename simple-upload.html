@@ -1,0 +1,499 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PDF無害化アップロード</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .upload-container {
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            padding: 40px;
+            max-width: 600px;
+            width: 100%;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        .header h1 {
+            color: #333;
+            margin-bottom: 10px;
+            font-size: 2rem;
+        }
+
+        .header p {
+            color: #666;
+            font-size: 1.1rem;
+        }
+
+        .drop-zone {
+            border: 3px dashed #667eea;
+            border-radius: 15px;
+            padding: 60px 20px;
+            text-align: center;
+            background: #f8f9ff;
+            margin-bottom: 20px;
+            transition: all 0.3s ease;
+            cursor: pointer;
+        }
+
+        .drop-zone:hover {
+            border-color: #764ba2;
+            background: #f0f2ff;
+        }
+
+        .drop-zone.dragover {
+            border-color: #764ba2;
+            background: #e8ebff;
+            transform: scale(1.02);
+        }
+
+        .upload-icon {
+            font-size: 4rem;
+            color: #667eea;
+            margin-bottom: 20px;
+        }
+
+        .drop-text {
+            font-size: 1.2rem;
+            color: #333;
+            margin-bottom: 10px;
+        }
+
+        .drop-subtext {
+            color: #666;
+            font-size: 0.9rem;
+        }
+
+        .file-input {
+            display: none;
+        }
+
+        .file-info {
+            background: #e8f5e8;
+            border-radius: 10px;
+            padding: 15px;
+            margin-bottom: 20px;
+            display: none;
+        }
+
+        .file-name {
+            font-weight: bold;
+            color: #2d5a2d;
+        }
+
+        .file-size {
+            color: #666;
+            font-size: 0.9rem;
+        }
+
+        .upload-btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 10px;
+            padding: 15px 30px;
+            font-size: 1.1rem;
+            cursor: pointer;
+            width: 100%;
+            transition: transform 0.3s ease;
+            display: none;
+        }
+
+        .upload-btn:hover {
+            transform: translateY(-2px);
+        }
+
+        .upload-btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 8px;
+            background: #e0e0e0;
+            border-radius: 4px;
+            margin: 20px 0;
+            overflow: hidden;
+            display: none;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            width: 0%;
+            transition: width 0.3s ease;
+        }
+
+        .result {
+            margin-top: 20px;
+            padding: 15px;
+            border-radius: 10px;
+            display: none;
+        }
+
+        .result.success {
+            background: #e8f5e8;
+            color: #2d5a2d;
+            border: 1px solid #c3e6c3;
+        }
+
+        .result.error {
+            background: #ffe8e8;
+            color: #8b0000;
+            border: 1px solid #ffb3b3;
+        }
+
+        .result.warning {
+            background: #fff8e1;
+            color: #e65100;
+            border: 1px solid #ffcc02;
+        }
+
+        .threat-details {
+            margin-top: 15px;
+            padding: 10px;
+            background: #f5f5f5;
+            border-radius: 5px;
+            font-size: 0.9rem;
+        }
+
+        .threat-item {
+            margin: 5px 0;
+            padding: 5px;
+            background: white;
+            border-left: 3px solid #ff5722;
+            border-radius: 3px;
+        }
+
+        .sanitization-info {
+            margin-top: 15px;
+            padding: 10px;
+            background: #e8f5e8;
+            border-radius: 5px;
+            font-size: 0.9rem;
+        }
+
+        .file-comparison {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 10px;
+        }
+
+        .size-info {
+            font-size: 0.85rem;
+            color: #666;
+        }
+    </style>
+</head>
+<body>
+    <div class="upload-container">
+        <div class="header">
+            <h1>📄 PDF無害化</h1>
+            <p>PDFファイルをアップロードして安全に処理します</p>
+        </div>
+
+        <div class="drop-zone" id="dropZone">
+            <div class="upload-icon">📁</div>
+            <div class="drop-text">PDFファイルをドラッグ&ドロップ</div>
+            <div class="drop-subtext">または クリックしてファイルを選択</div>
+            <input type="file" id="fileInput" class="file-input" accept=".pdf" />
+        </div>
+
+        <div class="file-info" id="fileInfo">
+            <div class="file-name" id="fileName"></div>
+            <div class="file-size" id="fileSize"></div>
+        </div>
+
+        <button class="upload-btn" id="uploadBtn">
+            🚀 無害化を開始
+        </button>
+
+        <div class="progress-bar" id="progressBar">
+            <div class="progress-fill" id="progressFill"></div>
+        </div>
+
+        <div class="result" id="result"></div>
+    </div>
+
+    <script>
+        const dropZone = document.getElementById('dropZone');
+        const fileInput = document.getElementById('fileInput');
+        const fileInfo = document.getElementById('fileInfo');
+        const fileName = document.getElementById('fileName');
+        const fileSize = document.getElementById('fileSize');
+        const uploadBtn = document.getElementById('uploadBtn');
+        const progressBar = document.getElementById('progressBar');
+        const progressFill = document.getElementById('progressFill');
+        const result = document.getElementById('result');
+
+        let selectedFile = null;
+
+        dropZone.addEventListener('click', () => fileInput.click());
+        dropZone.addEventListener('dragover', handleDragOver);
+        dropZone.addEventListener('dragleave', handleDragLeave);
+        dropZone.addEventListener('drop', handleDrop);
+        fileInput.addEventListener('change', handleFileSelect);
+        uploadBtn.addEventListener('click', handleUpload);
+
+        function handleDragOver(e) {
+            e.preventDefault();
+            dropZone.classList.add('dragover');
+        }
+
+        function handleDragLeave(e) {
+            e.preventDefault();
+            dropZone.classList.remove('dragover');
+        }
+
+        function handleDrop(e) {
+            e.preventDefault();
+            dropZone.classList.remove('dragover');
+            const files = e.dataTransfer.files;
+            if (files.length > 0) {
+                handleFile(files[0]);
+            }
+        }
+
+        function handleFileSelect(e) {
+            const files = e.target.files;
+            if (files.length > 0) {
+                handleFile(files[0]);
+            }
+        }
+
+        function handleFile(file) {
+            if (file.type !== 'application/pdf') {
+                showResult('PDFファイルのみアップロード可能です。', 'error');
+                return;
+            }
+
+            if (file.size > 50 * 1024 * 1024) {
+                showResult('ファイルサイズは50MB以下にしてください。', 'error');
+                return;
+            }
+
+            selectedFile = file;
+            fileName.textContent = file.name;
+            fileSize.textContent = formatFileSize(file.size);
+            fileInfo.style.display = 'block';
+            uploadBtn.style.display = 'block';
+            result.style.display = 'none';
+        }
+
+        function formatFileSize(bytes) {
+            if (bytes === 0) return '0 Bytes';
+            const k = 1024;
+            const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+            const i = Math.floor(Math.log(bytes) / Math.log(k));
+            return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+        }
+
+        function handleUpload() {
+            if (!selectedFile) return;
+
+            uploadBtn.disabled = true;
+            uploadBtn.textContent = '処理中...';
+            progressBar.style.display = 'block';
+            result.style.display = 'none';
+
+            let progress = 0;
+            const interval = setInterval(() => {
+                progress += Math.random() * 15;
+                if (progress > 90) progress = 90;
+                progressFill.style.width = progress + '%';
+            }, 100);
+
+            const formData = new FormData();
+            formData.append('file', selectedFile);
+
+            fetch('/api/upload', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                clearInterval(interval);
+                progressFill.style.width = '100%';
+                
+                setTimeout(() => {
+                    if (data.success) {
+                        if (data.sanitized) {
+                            // 脅威が検出されたが無害化に成功
+                            showThreatAndSanitizationResult(data);
+                        } else {
+                            // 安全ファイルの予防的無害化
+                            showSafeFileResult(data);
+                        }
+                    } else {
+                        if (data.quarantined) {
+                            // 無害化に失敗、隔離のみ
+                            showQuarantineResult(data);
+                        } else {
+                            // 一般的なエラー
+                            showResult(`❌ エラー: ${data.message}`, 'error');
+                        }
+                    }
+                    resetForm();
+                }, 500);
+            })
+            .catch(error => {
+                clearInterval(interval);
+                showResult(`❌ アップロードエラー: ${error.message}`, 'error');
+                resetForm();
+            });
+        }
+
+        function showResult(message, type) {
+            result.innerHTML = message;
+            result.className = 'result ' + type;
+            result.style.display = 'block';
+        }
+
+        function showThreatAndSanitizationResult(data) {
+            let threatsList = '';
+            if (data.threats && data.threats.length > 0) {
+                threatsList = '<div class="threat-details"><strong>検出された脅威:</strong>';
+                data.threats.forEach(threat => {
+                    let threatType = '';
+                    switch(threat.type) {
+                        case 'suspicious_content':
+                            threatType = '疑わしいコンテンツ';
+                            break;
+                        case 'suspicious_filename':
+                            threatType = '疑わしいファイル名';
+                            break;
+                        case 'suspicious_url':
+                            threatType = '疑わしいURL';
+                            break;
+                        default:
+                            threatType = threat.type;
+                    }
+                    threatsList += `<div class="threat-item">🚨 ${threatType} (深刻度: ${threat.severity})</div>`;
+                });
+                threatsList += '</div>';
+            }
+
+            const sanitizationInfo = `
+                <div class="sanitization-info">
+                    <strong>🛡️ 無害化処理完了:</strong><br>
+                    • 元ファイル: ${data.data.originalName}<br>
+                    • 無害化ファイル: ${data.data.sanitizedFileName}<br>
+                    • 除去された要素: ${data.data.removedElements.join(', ')}<br>
+                    <div class="file-comparison">
+                        <span class="size-info">元サイズ: ${formatFileSize(data.data.originalSize)}</span>
+                        <span class="size-info">処理後: ${formatFileSize(data.data.sanitizedSize)}</span>
+                    </div>
+                </div>
+            `;
+
+            const message = `
+                ⚠️ <strong>有害なファイルが検出されました！</strong><br>
+                ✅ 無害化処理を実行してアップロードしました。
+                ${threatsList}
+                ${sanitizationInfo}
+            `;
+
+            result.innerHTML = message;
+            result.className = 'result warning';
+            result.style.display = 'block';
+        }
+
+        function showSafeFileResult(data) {
+            const sanitizationInfo = `
+                <div class="sanitization-info">
+                    <strong>🛡️ 予防的無害化処理完了:</strong><br>
+                    • 元ファイル: ${data.data.originalName}<br>
+                    • 処理済みファイル: ${data.data.sanitizedFileName}<br>
+                    • 除去された要素: ${data.data.removedElements.join(', ')}<br>
+                    <div class="file-comparison">
+                        <span class="size-info">元サイズ: ${formatFileSize(data.data.originalSize)}</span>
+                        <span class="size-info">処理後: ${formatFileSize(data.data.sanitizedSize)}</span>
+                    </div>
+                </div>
+            `;
+
+            const message = `
+                ✅ <strong>ファイルは安全でした！</strong><br>
+                予防的無害化処理を実行してアップロードしました。
+                ${sanitizationInfo}
+            `;
+
+            result.innerHTML = message;
+            result.className = 'result success';
+            result.style.display = 'block';
+        }
+
+        function showQuarantineResult(data) {
+            let threatsList = '';
+            if (data.threats && data.threats.length > 0) {
+                threatsList = '<div class="threat-details"><strong>検出された脅威:</strong>';
+                data.threats.forEach(threat => {
+                    let threatType = '';
+                    switch(threat.type) {
+                        case 'suspicious_content':
+                            threatType = '疑わしいコンテンツ';
+                            break;
+                        case 'suspicious_filename':
+                            threatType = '疑わしいファイル名';
+                            break;
+                        case 'suspicious_url':
+                            threatType = '疑わしいURL';
+                            break;
+                        default:
+                            threatType = threat.type;
+                    }
+                    threatsList += `<div class="threat-item">🚨 ${threatType} (深刻度: ${threat.severity})</div>`;
+                });
+                threatsList += '</div>';
+            }
+
+            const message = `
+                🚫 <strong>危険なファイルが検出されました！</strong><br>
+                ❌ 無害化処理に失敗したため、ファイルは隔離されました。
+                ${threatsList}
+                <p style="margin-top: 10px; font-size: 0.9rem;">
+                このファイルは安全でないため、アップロードできませんでした。
+                </p>
+            `;
+
+            result.innerHTML = message;
+            result.className = 'result error';
+            result.style.display = 'block';
+        }
+
+        function resetForm() {
+            uploadBtn.disabled = false;
+            uploadBtn.textContent = '🚀 無害化を開始';
+            uploadBtn.style.display = 'none';
+            progressBar.style.display = 'none';
+            progressFill.style.width = '0%';
+            fileInfo.style.display = 'none';
+            fileInput.value = '';
+            selectedFile = null;
+        }
+    </script>
+</body>
+</html>
