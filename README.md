@@ -1,7 +1,7 @@
 # Shiroom - PDF無害化システム
 
 PDFファイルの脅威検出と無害化を行うセキュリティシステム。危険なコンテンツを自動検出し、安全な形で無害化処理を実行します。
-
+※※Claude Codeを使用してvibe codingで実装しており、正しく動作しない可能性があります。
 ## 🎯 主な機能
 
 - **PDF脅威検出**: JavaScript、疑わしいURL、危険なファイル名パターンを検出
@@ -196,22 +196,3 @@ npm install
   }
 }
 ```
-
-## 📝 ライセンス
-
-MIT License
-
-## 🤝 コントリビューション
-
-1. Forkしてください
-2. フィーチャーブランチを作成 (`git checkout -b feature/amazing-feature`)
-3. コミット (`git commit -m 'Add amazing feature'`)
-4. プッシュ (`git push origin feature/amazing-feature`)
-5. Pull Requestを作成
-
-## ⚠️ セキュリティ注意事項
-
-- このシステムは教育・テスト目的で作成されています
-- 本番環境での使用前に十分なセキュリティ検証を行ってください
-- 隔離されたファイルの取り扱いには注意してください
-- 定期的に隔離フォルダのクリーンアップを実行してください

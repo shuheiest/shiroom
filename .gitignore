@@ -89,3 +89,6 @@ coverage/
 
 # SSL certificates
 docker/ssl/
+
+#claude code local setting
+settings.local.json
